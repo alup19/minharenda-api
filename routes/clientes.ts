@@ -7,9 +7,9 @@ const router = Router()
 
 const clienteSchema = z.object({
   nome: z.string().min(3, { message: "Nome deve ter no mínimo 3 caracteres" }),
-  totalGasto: z.number().nonnegative({ message: "Total gasto deve ser um número positivo" }),
-  numCompras: z.number().int().nonnegative({ message: "Número de compras deve ser um número inteiro positivo" }),
-  tagId: z.number().int({ message: "ID da tag inválido" }),
+  notas: z.string().min(3, { message: "Notas deve ter no mínimo 3 caracteres" }),
+  endereco: z.string().min(3, { message: "Endereço deve ter no mínimo 3 caracteres" }),
+  tagId: z.number().optional(),
   usuarioId: z.string(),
 })
 
@@ -34,11 +34,11 @@ router.post("/", async (req, res) => {
     return res.status(400).json({ erro: valida.error })
   }
 
-  const { nome, totalGasto, numCompras, tagId, usuarioId } = valida.data
+  const { nome, notas, endereco, tagId, usuarioId } = valida.data
 
   try {
     const cliente = await prisma.cliente.create({
-      data: { nome, totalGasto, numCompras, tagId, usuarioId }
+      data: { nome, notas, endereco, tagId, usuarioId }
     })
     res.status(201).json(cliente)
   } catch (error) {
@@ -54,12 +54,12 @@ router.put("/:id", async (req, res) => {
     return res.status(400).json({ erro: valida.error })
   }
 
-  const { nome, totalGasto, numCompras, tagId, usuarioId } = valida.data
+  const { nome, notas, endereco, tagId, usuarioId } = valida.data
 
   try {
     const cliente = await prisma.cliente.update({
       where: { id: Number(id) },
-      data: { nome, totalGasto, numCompras, tagId, usuarioId }
+      data: { nome, notas, endereco, tagId, usuarioId }
     })
     res.status(200).json(cliente)
   } catch (error) {

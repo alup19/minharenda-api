@@ -5,7 +5,6 @@ generator client {
 datasource db {
   provider = "postgres"
   url      = env("DATABASE_URL")
-  
 }
 
 model Usuario {
@@ -23,26 +22,24 @@ model Usuario {
     estoques        Estoque[]
     receitas        Receita[]
     clientes        Cliente[]
-    @@map("usuarios")            
+    @@map("usuarios")
 }
 
 model Estoque {
     id             Int         @id @default(autoincrement())
     produto        String      @db.VarChar(50)
-    qtd_gramas     Int         
+    qtd_gramas     Int
     valorTotal     Float
     valorKG        Float
     valorGM        Float
-    usuario        Usuario        @relation(fields: [usuarioId], references: [id])
-    usuarioId      String  
-
-
+    usuario        Usuario     @relation(fields: [usuarioId], references: [id])
+    usuarioId      String
   @@map("estoques")
 }
 
 model Tag {
-  id            Int   @id @default(autoincrement())
-  nome          String   @db.VarChar(60)
+  id            Int        @id @default(autoincrement())
+  nome          String      @db.VarChar(60)
   despesas      Despesa[]
   receitas      Receita[]
   clientes      Cliente[]
@@ -58,44 +55,48 @@ model Despesa {
     updatedAt     DateTime       @updatedAt  
     usuario       Usuario        @relation(fields: [usuarioId], references: [id])
     usuarioId     String  
-    tag           Tag?            @relation(fields: [tagId], references: [id])
+    tag           Tag?           @relation(fields: [tagId], references: [id])
     tagId         Int?
     fornecedor    Fornecedor     @relation(fields: [fornecedorId], references: [id])
     fornecedorId  Int
-
   @@map("despesas")
 }
 
 model Fornecedor {
-  id            Int      @id @default(autoincrement())
-  nome          String   @db.VarChar(60)
+  id            Int         @id @default(autoincrement())
+  nome          String      @db.VarChar(60)
   despesas      Despesa[]
   @@map("fornecedores")
 }
 
 model Receita {
     id            Int            @id @default(autoincrement())
+    descricao     String         @db.VarChar(45)
     valor         Int            
     categoria     String         @db.VarChar(45)
+    anexo         String?        @db.VarChar(255) @default("")
     createdAt     DateTime       @default(now())
     updatedAt     DateTime       @updatedAt  
     usuario       Usuario        @relation(fields: [usuarioId], references: [id])
     usuarioId     String  
-    tag           Tag            @relation(fields: [tagId], references: [id])
-    tagId         Int
+    tag           Tag?           @relation(fields: [tagId], references: [id])
+    tagId         Int?
     cliente       Cliente        @relation(fields: [clienteId], references: [id])
     clienteId     Int
-  @@map("receitas")
+    @@map("receitas")
 }
+
 model Cliente {
     id              Int             @id @default(autoincrement())
     nome            String          @db.VarChar(50)
-    totalGasto      Float           
-    numCompras      Int
-    tag             Tag             @relation(fields: [tagId], references: [id])
-    tagId           Int
+    endereco        String          @db.VarChar(50)
+    notas           String          @db.VarChar(50)
+    totalGasto      Float           @default(0)
+    numCompras      Int             @default(0)
+    tag             Tag?             @relation(fields: [tagId], references: [id])
+    tagId           Int?
     usuario         Usuario         @relation(fields: [usuarioId], references: [id])
     usuarioId       String
     receitas        Receita[]
-    @@map("clientes")            
+    @@map("clientes")
 }

@@ -7,17 +7,23 @@ const prisma = new PrismaClient()
 const router = Router()
 
 const receitaSchema = z.object({
+    descricao: z.string().min(2,
+        { message: "Nome da descricão deve possuir, no mínimo, 2 caracteres" }),
     valor: z.number().positive({ message: "Valor deve ser positivo"}),
+    anexo: z.string().url().optional(), // links, não especifica .png/jpg
     categoria: z.string().min(2,
         { message: "Nome da categoria deve possuir, no mínimo, 2 caracteres" }),
+    tagId: z.number().optional(),
     usuarioId: z.string(),
-    tagId: z.number().positive({ message: "ID deve ser um valor positivo"}),
     clienteId: z.number().positive({ message: "ID deve ser um valor positivo"}),
 })
 
 router.get("/", async (req, res) => {
   try {
-    const receitas = await prisma.receita.findMany()
+    const receitas = await prisma.receita.findMany({
+      include: { cliente: true },
+      orderBy: { updatedAt: 'desc'}
+    })
     res.status(200).json(receitas)
   } catch (error) {
     res.status(500).json({ erro: error })
@@ -32,11 +38,11 @@ router.post("/", async (req, res) => {
     return
   }
 
-  const { valor, categoria, usuarioId, tagId, clienteId } = valida.data
+  const { descricao, valor, anexo, categoria, tagId, usuarioId, clienteId } = valida.data
 
   try {
     const receita = await prisma.receita.create({
-      data: { valor, categoria, usuarioId, tagId, clienteId }
+      data: { descricao, valor, anexo, categoria, tagId, usuarioId, clienteId }
     })
     res.status(201).json(receita)
   } catch (error) {
@@ -53,12 +59,12 @@ router.put("/:id", async (req, res) => {
         return
     }
     
-    const { valor, categoria, usuarioId, tagId, clienteId } = valida.data
+    const { descricao, valor, anexo, categoria, tagId, usuarioId, clienteId } = valida.data
     
     try {
         const receita = await prisma.receita.update({
             where: { id: Number(id) },
-            data: { valor, categoria, usuarioId, tagId, clienteId }
+            data: { descricao, valor, anexo, categoria, tagId, usuarioId, clienteId }
         })
     res.status(200).json(receita)
 } catch (error) {
