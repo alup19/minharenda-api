@@ -12,17 +12,15 @@ const receitaSchema = z.object({
     valor: z.number().positive({ message: "Valor deve ser positivo"}),
     anexo: z.string().url().optional(), // links, não especifica .png/jpg
     categoria: z.string().min(2,
-        { message: "Nome da categoria deve possuir, no mínimo, 2 caracteres" }),
-    tagId: z.number().optional(),
+        { message: "Nome da categoria deve possuir, no mínimo, 2 caracteres" }).optional(),
     usuarioId: z.string(),
-    clienteId: z.number().positive({ message: "ID deve ser um valor positivo"}),
+    clienteId: z.number().positive({ message: "ID deve ser um valor positivo"}).optional(),
 })
 
 router.get("/", async (req, res) => {
   try {
     const receitas = await prisma.receita.findMany({
-      include: { cliente: true },
-      orderBy: { updatedAt: 'desc'}
+      include: { cliente: true }
     })
     res.status(200).json(receitas)
   } catch (error) {
@@ -38,11 +36,11 @@ router.post("/", async (req, res) => {
     return
   }
 
-  const { descricao, valor, anexo, categoria, tagId, usuarioId, clienteId } = valida.data
+  const { descricao, valor, anexo, categoria, usuarioId, clienteId } = valida.data
 
   try {
     const receita = await prisma.receita.create({
-      data: { descricao, valor, anexo, categoria, tagId, usuarioId, clienteId }
+      data: { descricao, valor, anexo, categoria, usuarioId, clienteId }
     })
     res.status(201).json(receita)
   } catch (error) {
@@ -59,12 +57,12 @@ router.put("/:id", async (req, res) => {
         return
     }
     
-    const { descricao, valor, anexo, categoria, tagId, usuarioId, clienteId } = valida.data
+    const { descricao, valor, anexo, categoria, usuarioId, clienteId } = valida.data
     
     try {
         const receita = await prisma.receita.update({
             where: { id: Number(id) },
-            data: { descricao, valor, anexo, categoria, tagId, usuarioId, clienteId }
+            data: { descricao, valor, anexo, categoria, usuarioId, clienteId }
         })
     res.status(200).json(receita)
 } catch (error) {

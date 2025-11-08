@@ -7,13 +7,12 @@ const prisma = new PrismaClient()
 const router = Router()
 
 const despesaSchema = z.object({
+  descricao: z.string(),
   valor: z.number().positive({ message: "Valor deve ser positivo"}),
   categoria: z.string().min(2,
-    { message: "Nome da categoria deve possuir, no mínimo, 2 caracteres" }),
+    { message: "Nome da categoria deve possuir, no mínimo, 2 caracteres" }).optional(),
   anexo: z.string().url().optional(), // links, não especifica .png/jpg
-  usuarioId: z.string(),
-  tagId: z.number().positive({ message: "ID deve ser um valor positivo"}).optional(),
-  fornecedorId: z.number().positive({ message: "ID deve ser um valor positivo"}),
+  usuarioId: z.string()
 })
 
 router.get("/", async (req, res) => {
@@ -33,11 +32,11 @@ router.post("/", async (req, res) => {
     return
   }
 
-  const { valor, categoria, anexo, usuarioId, tagId, fornecedorId } = valida.data
+  const { valor, categoria, anexo, usuarioId, descricao} = valida.data
 
   try {
     const despesa = await prisma.despesa.create({
-      data: { valor, categoria, anexo, usuarioId, tagId, fornecedorId }
+      data: { valor, categoria, anexo, usuarioId, descricao }
     })
     res.status(201).json(despesa)
   } catch (error) {
@@ -54,12 +53,12 @@ router.put("/:id", async (req, res) => {
         return
     }
     
-    const { valor, categoria, anexo, usuarioId, tagId, fornecedorId } = valida.data
+    const { valor, categoria, anexo, usuarioId, descricao } = valida.data
     
     try {
         const despesa = await prisma.despesa.update({
             where: { id: Number(id) },
-            data: { valor, categoria, anexo, usuarioId, tagId, fornecedorId }
+            data: { valor, categoria, anexo, usuarioId, descricao }
         })
     res.status(200).json(despesa)
 } catch (error) {
