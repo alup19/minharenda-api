@@ -110,7 +110,7 @@ model Receita {
   categoria  String?
   anexo      String?
 
-  createdAt  DateTime
+  createdAt  DateTime @default(now())
 
   usuarioId  String
   usuario    Usuario @relation(fields: [usuarioId], references: [id])

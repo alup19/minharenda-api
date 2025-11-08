@@ -7,17 +7,16 @@ const router = Router()
 
 const clienteSchema = z.object({
   nome: z.string().min(3, { message: "Nome deve ter no mínimo 3 caracteres" }),
-  notas: z.string().min(3, { message: "Notas deve ter no mínimo 3 caracteres" }),
-  endereco: z.string().min(3, { message: "Endereço deve ter no mínimo 3 caracteres" }),
-  tagId: z.number().optional(),
-  usuarioId: z.string(),
+  notas: z.string().min(3, { message: "Notas deve ter no mínimo 3 caracteres" }).optional(),
+  endereco: z.string().min(3, { message: "Endereço deve ter no mínimo 3 caracteres" }).optional(),
+  telefone: z.string().optional(),
+  usuarioId: z.string()
 })
 
 router.get("/", async (req, res) => {
   try {
     const clientes = await prisma.cliente.findMany({
       include: {
-        tag: true,
         usuario: true,
         receitas: true,
       }
@@ -34,11 +33,11 @@ router.post("/", async (req, res) => {
     return res.status(400).json({ erro: valida.error })
   }
 
-  const { nome, notas, endereco, tagId, usuarioId } = valida.data
+  const { nome, notas, endereco, telefone, usuarioId } = valida.data
 
   try {
     const cliente = await prisma.cliente.create({
-      data: { nome, notas, endereco, tagId, usuarioId }
+      data: { nome, notas, endereco, telefone, usuarioId }
     })
     res.status(201).json(cliente)
   } catch (error) {
@@ -54,12 +53,12 @@ router.put("/:id", async (req, res) => {
     return res.status(400).json({ erro: valida.error })
   }
 
-  const { nome, notas, endereco, tagId, usuarioId } = valida.data
+  const { nome, notas, endereco, telefone, usuarioId } = valida.data
 
   try {
     const cliente = await prisma.cliente.update({
       where: { id: Number(id) },
-      data: { nome, notas, endereco, tagId, usuarioId }
+      data: { nome, notas, endereco, telefone, usuarioId }
     })
     res.status(200).json(cliente)
   } catch (error) {
