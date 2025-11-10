@@ -9,12 +9,13 @@ const router = Router()
 const receitaSchema = z.object({
   descricao: z.string().min(2,
     { message: "Nome da descricão deve possuir, no mínimo, 2 caracteres" }),
-  valor: z.number().positive({ message: "Valor deve ser positivo" }),
+  valor: z.coerce.number()
+    .positive({ message: "Valor deve ser positivo" }),
   categoria: z.string().min(2,
     { message: "Nome da categoria deve possuir, no mínimo, 2 caracteres" }).optional(),
   anexo: z.string().url().optional(), // links, não especifica .png/jpg
-  data: z.string().date(),
-  clienteId: z.number().positive({ message: "ID deve ser um valor positivo" }).optional(),
+  data: z.coerce.date(),
+  clienteId: z.coerce.number().positive().optional(),
   usuarioId: z.string(),
 })
 
@@ -41,7 +42,8 @@ router.post("/", async (req, res) => {
 
   try {
     const receita = await prisma.receita.create({
-      data: { descricao, valor, anexo, data, categoria, usuarioId, clienteId }
+      data: { descricao, valor, anexo, data, categoria, usuarioId, clienteId },
+      include: { cliente: true }
     })
     res.status(201).json(receita)
   } catch (error) {
@@ -63,7 +65,8 @@ router.put("/:id", async (req, res) => {
   try {
     const receita = await prisma.receita.update({
       where: { id: Number(id) },
-      data: { descricao, valor, anexo, data, categoria, usuarioId, clienteId }
+      data: { descricao, valor, anexo, data, categoria, usuarioId, clienteId },
+      include: { cliente: true }
     })
     res.status(200).json(receita)
   } catch (error) {
@@ -76,7 +79,8 @@ router.delete("/:id", async (req, res) => {
 
   try {
     const receita = await prisma.receita.delete({
-      where: { id: Number(id) }
+      where: { id: Number(id) },
+      include: { cliente: true }
     })
     res.status(200).json(receita)
   } catch (error) {
