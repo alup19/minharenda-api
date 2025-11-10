@@ -45,11 +45,13 @@ model Produto {
   saldoBase  Decimal @default(0) @db.Decimal(18, 6) // em UN/G/ML conforme unidadeBase
   custoMedio Decimal @default(0) @db.Decimal(14, 6) // custo por unidade base
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  anexo     String?
+  data      DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   itensReceita ReceitaItem[]
-  usuario      Usuario      @relation(fields: [usuarioId], references: [id])
+  usuario      Usuario       @relation(fields: [usuarioId], references: [id])
   usuarioId    String
 
   @@map("produtos")
@@ -66,7 +68,7 @@ model Cliente {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
   usuarioId String
 
   @@map("clientes")
@@ -79,16 +81,16 @@ model Receita {
   categoria String?
   anexo     String?
 
-  data      DateTime 
+  data      DateTime
   createdAt DateTime @default(now())
 
   clienteId Int?
   cliente   Cliente? @relation(fields: [clienteId], references: [id])
 
   usuarioId String
-  itens   ReceitaItem[]
+  itens     ReceitaItem[]
 
-  usuario Usuario      @relation(fields: [usuarioId], references: [id])
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
 
   @@map("receitas")
 }

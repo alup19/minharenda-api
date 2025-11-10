@@ -12,6 +12,8 @@ const produtoSchema = z.object({
   unidadeBase: z.nativeEnum(Unidade),
   categoria: z.string().min(2,
     { message: "Nome da categoria deve possuir, no mínimo, 2 caracteres" }).optional(),
+  anexo: z.string().url().optional(),
+  data: z.string().date().optional(),
   usuarioId: z.string()
 })
 
@@ -32,11 +34,11 @@ router.post("/", async (req, res) => {
     return
   }
 
-  const { nome, unidadeBase, categoria, usuarioId } = valida.data
+  const { nome, unidadeBase, categoria, anexo, data, usuarioId } = valida.data
 
   try {
     const produto = await prisma.produto.create({
-      data: { nome, unidadeBase, categoria, usuarioId }
+      data: { nome, unidadeBase, categoria, anexo, data, usuarioId }
     })
     res.status(201).json(produto)
   } catch (error) {
@@ -45,25 +47,25 @@ router.post("/", async (req, res) => {
 })
 
 router.put("/:id", async (req, res) => {
-    const { id } = req.params
-    
-    const valida = produtoSchema.safeParse(req.body)
-    if (!valida.success) {
-        res.status(400).json({ erro: valida.error })
-        return
-    }
-    
-    const { nome, unidadeBase, categoria, usuarioId } = valida.data
-    
-    try {
-        const produto = await prisma.produto.update({
-            where: { id: Number(id) },
-            data: { nome, unidadeBase, categoria, usuarioId }
-        })
+  const { id } = req.params
+
+  const valida = produtoSchema.safeParse(req.body)
+  if (!valida.success) {
+    res.status(400).json({ erro: valida.error })
+    return
+  }
+
+  const { nome, unidadeBase, categoria, anexo, data, usuarioId } = valida.data
+
+  try {
+    const produto = await prisma.produto.update({
+      where: { id: Number(id) },
+      data: { nome, unidadeBase, categoria, anexo, data, usuarioId }
+    })
     res.status(200).json(produto)
-} catch (error) {
+  } catch (error) {
     res.status(400).json({ error })
-}
+  }
 })
 
 router.delete("/:id", async (req, res) => {
