@@ -75,6 +75,30 @@ router.get("/:usuarioId", async (req, res) => {
   }
 })
 
+router.get("/dashboard/:usuarioId", async (req, res) => {
+  const { usuarioId } = req.params;
+
+  try {
+    const receitas = await prisma.receita.findMany({
+      where: { usuarioId },
+      orderBy: { data: "desc" },
+      take: 10,
+      include: {
+        cliente: true,
+        itens: {
+          include: {
+            produto: true,
+          },
+        },
+      },
+    });
+
+    res.status(200).json(receitas);
+  } catch (error) {
+    res.status(500).json({ erro: error });
+  }
+});
+
 router.post("/", async (req, res) => {
   const valida = receitaSchema.safeParse(req.body)
   if (!valida.success) {

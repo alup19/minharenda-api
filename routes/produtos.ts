@@ -60,7 +60,7 @@ router.get("/:usuarioId", async (req, res) => {
         usuarioId,
         ativo: true,
       },
-      orderBy: { nome: "asc" },
+      orderBy: { createdAt: "desc" },
     });
 
     const produtosFormatados = produtos.map(formatarProdutoParaExibicao);
@@ -69,6 +69,64 @@ router.get("/:usuarioId", async (req, res) => {
   } catch (erro) {
     console.error(erro);
     res.status(500).json({ erro: "Erro ao listar produtos" });
+  }
+});
+
+router.get("/top/10/:usuarioId", async (req, res) => {
+  const { usuarioId } = req.params;
+
+  try {
+    const itensVendidos = await prisma.receitaItem.groupBy({
+      by: ["produtoId"],
+      where: {
+        receita: {
+          usuarioId,
+        },
+      },
+      _count: {
+        produtoId: true,
+      },
+      orderBy: {
+        _count: { produtoId: "desc" },
+      },
+      take: 10,
+    });
+
+    const idsVendidos = itensVendidos.map((i) => i.produtoId);
+
+    const produtosVendidos = await prisma.produto.findMany({
+      where: { id: { in: idsVendidos } },
+    });
+
+    const topVendidos = itensVendidos.map((i) => {
+      const prod = produtosVendidos.find((p) => p.id === i.produtoId);
+      return {
+        ...prod,
+        totalVendido: i._count.produtoId,
+      };
+    });
+
+    const produtosSemVendas = await prisma.produto.findMany({
+      where: {
+        usuarioId,
+        id: { notIn: idsVendidos },
+        ativo: true,
+      },
+      take: 10 - topVendidos.length,
+      orderBy: { createdAt: "desc" },
+    });
+
+    const restantes = produtosSemVendas.map((p) => ({
+      ...p,
+      totalVendido: 0,
+    }));
+
+    const resposta = [...topVendidos, ...restantes];
+
+    res.json(resposta);
+  } catch (erro) {
+    console.error(erro);
+    res.status(500).json({ erro: "Erro ao listar top produtos" });
   }
 });
 
@@ -83,7 +141,7 @@ router.post("/", async (req, res) => {
         usuarioId: dadosValidados.usuarioId,
         categoria: dadosValidados.categoria ?? null,
         saldoBase: 0,
-        custoMedio: 0,
+        custoMedio: 0,  
         ativo: true,
       },
     });

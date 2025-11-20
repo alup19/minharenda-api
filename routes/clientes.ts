@@ -57,7 +57,8 @@ router.get("/:usuarioId", async (req, res) => {
       },
       where: {
         usuarioId: usuarioId
-      }
+      },
+      orderBy: { updatedAt: "desc" },
     })
 
     const clientesComTotais = clientes.map(clienteInfosAdicionais)
@@ -67,6 +68,47 @@ router.get("/:usuarioId", async (req, res) => {
     res.status(500).json({ erro: error })
   }
 })
+
+router.get("/top/10/:usuarioId", async (req, res) => {
+  const { usuarioId } = req.params;
+
+  try {
+    const clientes = await prisma.cliente.findMany({
+      where: { usuarioId },
+      include: {
+        receitas: {
+          include: {
+            itens: true,
+          },
+        },
+      },
+    });
+
+    const clientesComTotais = clientes.map((cliente) => {
+      const totalGasto = cliente.receitas.reduce((acc, receita) => {
+        const somaReceita = receita.itens.reduce((soma, item) => {
+          return soma + Number(item.subtotal);
+        }, 0);
+        return acc + somaReceita;
+      }, 0);
+
+      return {
+        id: cliente.id,
+        nome: cliente.nome,
+        totalGasto,
+      };
+    });
+
+    const top10 = clientesComTotais
+      .sort((a, b) => b.totalGasto - a.totalGasto)
+      .slice(0, 10);
+
+    return res.json(top10);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ erro: "Erro ao listar top 10 clientes" });
+  }
+});
 
 router.post("/", async (req, res) => {
   const valida = clienteSchema.safeParse(req.body)

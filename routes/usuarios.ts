@@ -132,4 +132,33 @@ router.delete("/:id", async (req, res) => {
   }
 })
 
+router.get("/dashboard/:usuarioId", async (req, res) => {
+  const { usuarioId } = req.params
+
+  try {
+    const receitas = await prisma.receita.findMany({
+      where: { usuarioId },
+      select: { valor: true },
+    })
+
+    const despesas = await prisma.despesa.findMany({
+      where: { usuarioId },
+      select: { valor: true },
+    })
+
+    const totalReceitas = receitas.reduce((acc, r) => acc + Number(r.valor), 0)
+    const totalDespesas = despesas.reduce((acc, d) => acc + Number(d.valor), 0)
+
+    const lucroLiquido = totalReceitas - totalDespesas
+
+    res.status(200).json({
+      totalReceitas,
+      totalDespesas,
+      lucroLiquido,
+    })
+  } catch (error) {
+    res.status(500).json({ erro: error })
+  }
+})
+
 export default router

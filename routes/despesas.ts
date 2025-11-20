@@ -41,12 +41,29 @@ router.get("/:usuarioId", async (req, res) => {
   try {
     const despesas = await prisma.despesa.findMany({
       where: { usuarioId },
+      orderBy: { createdAt: 'desc' }
     })
     res.status(200).json(despesas)
   } catch (error) {
     res.status(500).json({ erro: error })
   }
 })
+
+router.get("/dashboard/:usuarioId", async (req, res) => {
+  const { usuarioId } = req.params;
+
+  try {
+    const despesas = await prisma.despesa.findMany({
+      where: { usuarioId },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    });
+
+    res.status(200).json(despesas);
+  } catch (error) {
+    res.status(500).json({ erro: error });
+  }
+});
 
 router.post("/", async (req, res) => {
   const valida = despesaSchema.safeParse(req.body)
