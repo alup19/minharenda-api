@@ -5,23 +5,16 @@ import { z } from "zod";
 const prisma = new PrismaClient();
 const router = Router();
 
-// ---------- SCHEMAS ----------
 const criarProdutoSchema = z.object({
-  nome: z.string().min(2),
+  nome: z.string().min(2, { message: "Nome deve ter pelo menos 2 caracteres" }),
   unidadeBase: z.nativeEnum(Unidade),
   usuarioId: z.string(),
-  categoria: z
-    .nativeEnum(Categoria_Estoque)
-    .optional()
-    .nullable(),
+  categoria: z.nativeEnum(Categoria_Estoque).optional().nullable(),
 });
 
 const atualizarProdutoSchema = z.object({
   nome: z.string().min(2).optional(),
-  categoria: z
-    .nativeEnum(Categoria_Estoque)
-    .optional()
-    .nullable(),
+  categoria: z.nativeEnum(Categoria_Estoque).optional().nullable(),
   saldoBase: z.coerce.number().optional(),
   custoMedio: z.coerce.number().optional(),
   anexo: z.string().url().optional().nullable(),
@@ -29,35 +22,35 @@ const atualizarProdutoSchema = z.object({
   ativo: z.boolean().optional(),
 });
 
-// helper pra montar campos de display
-function mapProdutoDisplay(p: any) {
+function formatarProdutoParaExibicao(produto: any) {
   let unidadeDisplay = "un";
-  let saldoDisplay = Number(p.saldoBase ?? 0);
-  let precoMedioDisplay = Number(p.custoMedio ?? 0);
+  let saldoDisplay = Number(produto.saldoBase ?? 0);
+  let precoMedioDisplay = Number(produto.custoMedio ?? 0);
 
-  if (p.unidadeBase === "G") {
+  // Conversão de gramas pra KG (preço e quantidade estoque).
+  if (produto.unidadeBase === "G") {
     unidadeDisplay = "kg";
-    saldoDisplay = +(saldoDisplay / 1000).toFixed(3);
-    precoMedioDisplay = +(precoMedioDisplay * 1000).toFixed(6);
-  } else if (p.unidadeBase === "ML") {
+    saldoDisplay = Number((saldoDisplay / 1000).toFixed(3));
+    precoMedioDisplay = Number((precoMedioDisplay * 1000).toFixed(6));
+  }
+  // Conversão de milimitros pra L (preço e quantidade estoque).
+  else if (produto.unidadeBase === "ML") {
     unidadeDisplay = "L";
-    saldoDisplay = +(saldoDisplay / 1000).toFixed(3);
-    precoMedioDisplay = +(precoMedioDisplay * 1000).toFixed(6);
-  } else {
+    saldoDisplay = Number((saldoDisplay / 1000).toFixed(3));
+    precoMedioDisplay = Number((precoMedioDisplay * 1000).toFixed(6));
+  }
+  else {
     unidadeDisplay = "un";
   }
 
   return {
-    ...p,
+    ...produto,
     saldoDisplay,
     unidadeDisplay,
     precoMedioDisplay,
   };
 }
 
-// ---------- ROTAS ----------
-
-// Listar produtos do usuário (apenas ativos)
 router.get("/:usuarioId", async (req, res) => {
   const { usuarioId } = req.params;
 
@@ -70,88 +63,113 @@ router.get("/:usuarioId", async (req, res) => {
       orderBy: { nome: "asc" },
     });
 
-    const mapped = produtos.map(mapProdutoDisplay);
-    res.json(mapped);
-  } catch (err) {
-    console.error(err);
+    const produtosFormatados = produtos.map(formatarProdutoParaExibicao);
+
+    res.json(produtosFormatados);
+  } catch (erro) {
+    console.error(erro);
     res.status(500).json({ erro: "Erro ao listar produtos" });
   }
 });
 
-// Criar produto
 router.post("/", async (req, res) => {
   try {
-    const data = criarProdutoSchema.parse(req.body);
+    const dadosValidados = criarProdutoSchema.parse(req.body);
 
-    const criado = await prisma.produto.create({
+    const novoProduto = await prisma.produto.create({
       data: {
-        nome: data.nome,
-        unidadeBase: data.unidadeBase,
-        usuarioId: data.usuarioId,
-        categoria: data.categoria ?? null,
+        nome: dadosValidados.nome,
+        unidadeBase: dadosValidados.unidadeBase,
+        usuarioId: dadosValidados.usuarioId,
+        categoria: dadosValidados.categoria ?? null,
         saldoBase: 0,
         custoMedio: 0,
         ativo: true,
       },
     });
 
-    res.status(201).json(mapProdutoDisplay(criado));
-  } catch (err: any) {
-    console.error(err);
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({ erro: "Dados inválidos", detalhes: err.errors });
+    res.status(201).json(formatarProdutoParaExibicao(novoProduto));
+  } catch (erro: any) {
+    console.error(erro);
+
+    if (erro instanceof z.ZodError) {
+      return res
+        .status(400)
+        .json({ erro: "Dados inválidos", detalhes: erro.errors });
     }
+
     res.status(500).json({ erro: "Erro ao criar produto" });
   }
 });
 
-// Atualizar produto (inclusive saldo, custo, categoria, anexo, data, ativo)
 router.put("/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
-    const body = atualizarProdutoSchema.parse(req.body);
+    const corpoValido = atualizarProdutoSchema.parse(req.body);
 
-    const data: any = {};
+    const dadosAtualizacao: any = {};
 
-    if (typeof body.nome !== "undefined") data.nome = body.nome;
-    if (typeof body.categoria !== "undefined") data.categoria = body.categoria;
-    if (typeof body.saldoBase !== "undefined") data.saldoBase = body.saldoBase;
-    if (typeof body.custoMedio !== "undefined") data.custoMedio = body.custoMedio;
-    if (typeof body.anexo !== "undefined") data.anexo = body.anexo;
-    if (typeof body.data !== "undefined") data.data = body.data;
-    if (typeof body.ativo !== "undefined") data.ativo = body.ativo;
+    if (typeof corpoValido.nome !== "undefined") {
+      dadosAtualizacao.nome = corpoValido.nome;
+    }
 
-    const atualizado = await prisma.produto.update({
+    if (typeof corpoValido.categoria !== "undefined") {
+      dadosAtualizacao.categoria = corpoValido.categoria;
+    }
+
+    if (typeof corpoValido.saldoBase !== "undefined") {
+      dadosAtualizacao.saldoBase = corpoValido.saldoBase;
+    }
+
+    if (typeof corpoValido.custoMedio !== "undefined") {
+      dadosAtualizacao.custoMedio = corpoValido.custoMedio;
+    }
+
+    if (typeof corpoValido.anexo !== "undefined") {
+      dadosAtualizacao.anexo = corpoValido.anexo;
+    }
+
+    if (typeof corpoValido.data !== "undefined") {
+      dadosAtualizacao.data = corpoValido.data;
+    }
+
+    if (typeof corpoValido.ativo !== "undefined") {
+      dadosAtualizacao.ativo = corpoValido.ativo;
+    }
+
+    const produtoAtualizado = await prisma.produto.update({
       where: { id: Number(id) },
-      data,
+      data: dadosAtualizacao,
     });
 
-    res.json(mapProdutoDisplay(atualizado));
-  } catch (err: any) {
-    console.error(err);
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({ erro: "Dados inválidos", detalhes: err.errors });
+    res.json(formatarProdutoParaExibicao(produtoAtualizado));
+  } catch (erro: any) {
+    console.error(erro);
+
+    if (erro instanceof z.ZodError) {
+      return res
+        .status(400)
+        .json({ erro: "Dados inválidos", detalhes: erro.errors });
     }
+
     res.status(500).json({ erro: "Erro ao atualizar produto" });
   }
 });
 
-// Exclusão "hard" (opcional – ainda existe, mas o front não vai usar)
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
-    const produto = await prisma.produto.delete({
+    const produtoExcluido = await prisma.produto.delete({
       where: { id: Number(id) },
     });
 
-    res.json(produto);
-  } catch (err: any) {
-    console.error(err);
+    res.json(produtoExcluido);
+  } catch (erro: any) {
+    console.error(erro);
 
-    // se bater na FK de receitaItems, devolve erro amigável
-    if (err.code === "P2003") {
+    if (erro.code === "P2003") {
       return res.status(400).json({
         erro: "Erro ao excluir",
         detail:

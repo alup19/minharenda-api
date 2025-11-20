@@ -13,16 +13,15 @@ const clienteSchema = z.object({
   usuarioId: z.string()
 })
 
+function clienteInfosAdicionais(cliente: any) {
+  const receitasDoCliente = Array.isArray(cliente.receitas) ? cliente.receitas : []
 
-function mapClienteWithTotals(cliente: any) {
-  const receitas = Array.isArray(cliente.receitas) ? cliente.receitas : []
-
-  const totalGasto = receitas.reduce((sum: number, r: any) => {
-    const valor = r.valorTotal ?? r.valor ?? 0
-    return sum + Number(valor)
+  const totalGasto = receitasDoCliente.reduce((acumulado: number, receita: any) => {
+    const valorDaReceita = receita.valorTotal ?? receita.valor ?? 0
+    return acumulado + Number(valorDaReceita)
   }, 0)
 
-  const totalCompras = receitas.length
+  const totalCompras = receitasDoCliente.length
 
   return {
     ...cliente,
@@ -40,7 +39,7 @@ router.get("/", async (req, res) => {
       }
     })
 
-    const clientesComTotais = clientes.map(mapClienteWithTotals)
+    const clientesComTotais = clientes.map(clienteInfosAdicionais)
 
     res.status(200).json(clientesComTotais)
   } catch (error) {
@@ -61,7 +60,7 @@ router.get("/:usuarioId", async (req, res) => {
       }
     })
 
-    const clientesComTotais = clientes.map(mapClienteWithTotals)
+    const clientesComTotais = clientes.map(clienteInfosAdicionais)
 
     res.status(200).json(clientesComTotais)
   } catch (error) {
@@ -107,7 +106,7 @@ router.put("/:id", async (req, res) => {
       }
     })
 
-    const clienteComTotais = mapClienteWithTotals(cliente)
+    const clienteComTotais = clienteInfosAdicionais(cliente)
 
     res.status(200).json(clienteComTotais)
   } catch (error) {

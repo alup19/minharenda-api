@@ -16,18 +16,17 @@ const despesaSchema = z.object({
     .string()
     .min(2, { message: "Nome da categoria deve possuir, no mínimo, 2 caracteres" })
     .optional()
-    .or(z.literal("")), // aceita string vazia
+    .or(z.literal("")),
   anexo: z
     .string()
     .url()
     .optional()
-    .or(z.literal("")), // aceita string vazia
+    .or(z.literal("")),
   data: z.coerce.date(),
   usuarioId: z.string(),
 })
 
 
-// LISTAR TODAS (se quiser filtrar depois por query string, é aqui)
 router.get("/", async (req, res) => {
   try {
     const despesas = await prisma.despesa.findMany()
@@ -37,7 +36,6 @@ router.get("/", async (req, res) => {
   }
 })
 
-// LISTAR POR USUÁRIO
 router.get("/:usuarioId", async (req, res) => {
   const { usuarioId } = req.params
   try {
@@ -58,7 +56,7 @@ router.post("/", async (req, res) => {
 
   const { categoria, anexo, ...resto } = valida.data
 
-  const dataParsed = {
+  const dadosFormatados = {
     ...resto,
     categoria: categoria && categoria.trim() !== "" ? categoria : undefined,
     anexo: anexo && anexo.trim() !== "" ? anexo : undefined,
@@ -66,7 +64,7 @@ router.post("/", async (req, res) => {
 
   try {
     const despesa = await prisma.despesa.create({
-      data: dataParsed,
+      data: dadosFormatados,
     })
     res.status(201).json(despesa)
   } catch (error) {
@@ -84,7 +82,7 @@ router.put("/:id", async (req, res) => {
 
   const { categoria, anexo, ...resto } = valida.data
 
-  const dataParsed = {
+  const dadosFormatados = {
     ...resto,
     categoria: categoria && categoria.trim() !== "" ? categoria : undefined,
     anexo: anexo && anexo.trim() !== "" ? anexo : undefined,
@@ -93,7 +91,7 @@ router.put("/:id", async (req, res) => {
   try {
     const despesa = await prisma.despesa.update({
       where: { id: Number(id) },
-      data: dataParsed,
+      data: dadosFormatados,
     })
     res.status(200).json(despesa)
   } catch (error) {
@@ -101,7 +99,6 @@ router.put("/:id", async (req, res) => {
   }
 })
 
-// DELETAR
 router.delete("/:id", async (req, res) => {
   const { id } = req.params
 

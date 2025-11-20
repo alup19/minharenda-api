@@ -5,11 +5,10 @@ import { z } from 'zod'
 const prisma = new PrismaClient()
 const router = Router()
 
-// --------- SCHEMAS ---------
 const receitaSchema = z.object({
   descricao: z.string().min(2, {
     message: "Nome da descricão deve possuir, no mínimo, 2 caracteres",
-  }),
+  }).optional(),
   valor: z.coerce
     .number()
     .positive({ message: "Valor deve ser positivo" }),
@@ -39,6 +38,28 @@ const loteItensSchema = z.object({
 router.get("/", async (req, res) => {
   try {
     const receitas = await prisma.receita.findMany({
+      include: {
+        cliente: true,
+        itens: {
+          include: {
+            produto: true,
+          },
+        },
+      },
+    })
+    res.status(200).json(receitas)
+  } catch (error) {
+    res.status(500).json({ erro: error })
+  }
+})
+
+router.get("/:usuarioId", async (req, res) => {
+  const { usuarioId } = req.params
+
+  try {
+    const receitas = await prisma.receita.findMany({
+      where: { usuarioId },
+      orderBy: { data: 'desc' },
       include: {
         cliente: true,
         itens: {
@@ -122,23 +143,20 @@ router.delete("/:id", async (req, res) => {
   }
 
   try {
-    await prisma.$transaction(async (tx) => {
-      const itens = await tx.receitaItem.findMany({
+    await prisma.$transaction(async (transacao) => {
+      const itens = await transacao.receitaItem.findMany({
         where: { receitaId },
       });
 
       const mapaPorProduto = new Map<number, number>();
 
-      for (const it of itens) {
-        const atual = mapaPorProduto.get(it.produtoId) ?? 0;
-        mapaPorProduto.set(
-          it.produtoId,
-          atual + Number(it.qtdBase)
-        );
+      for (const item of itens) {
+        const atual = mapaPorProduto.get(item.produtoId) ?? 0;
+        mapaPorProduto.set(item.produtoId, atual + Number(item.qtdBase));
       }
 
       for (const [produtoId, qtd] of mapaPorProduto.entries()) {
-        await tx.produto.update({
+        await transacao.produto.update({
           where: { id: produtoId },
           data: {
             saldoBase: { increment: qtd },
@@ -146,8 +164,7 @@ router.delete("/:id", async (req, res) => {
         });
       }
 
-      // usa deleteMany para não lançar P2025 se a receita não existir
-      await tx.receita.deleteMany({
+      await transacao.receita.deleteMany({
         where: { id: receitaId },
       });
     });
@@ -158,7 +175,6 @@ router.delete("/:id", async (req, res) => {
     return res.status(500).json({ error: "Erro ao excluir receita" });
   }
 });
-
 
 router.post("/:id/itens", async (req, res) => {
   const { id } = req.params
@@ -177,12 +193,11 @@ router.post("/:id/itens", async (req, res) => {
         receitaId: Number(id),
         produtoId: item.produtoId,
         qtdBase: Number(item.qtdBase),
-        subtotal: Number(item.subtotal ?? 0), // garante number, sem undefined
+        subtotal: Number(item.subtotal ?? 0),
         precoUnit:
-          item.precoUnit == null ? null : Number(item.precoUnit), // number | null
+          item.precoUnit == null ? null : Number(item.precoUnit),
       })),
-    });
-
+    })
 
     const receita = await prisma.receita.findUnique({
       where: { id: Number(id) },
